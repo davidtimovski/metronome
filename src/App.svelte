@@ -1,11 +1,17 @@
 <script lang="ts">
 	const click = new Audio('/audio/click.mp3?v=5');
 	click.load();
+	
+	const worker = new Worker('worker.js');
+	worker.onmessage = () => {
+		click.currentTime = 0;
+	    click.play();
+	}
 
 	let data = {
 		tempo: 120
 	};
-
+	let isRunning = false;
 	let msPerBeat = 500;
 
 	const dataItem = window.localStorage.getItem('data');
@@ -18,9 +24,6 @@
 		saveData();
 	}
 
-	let started = false;
-	let intervalId: number;
-
 	function saveData() {
 		const stringified = JSON.stringify(data);
 		window.localStorage.setItem('data', stringified);
@@ -32,40 +35,13 @@
 
 	function tempoChanged() {
 		msPerBeat = getMsPerBeat();
-
-		if (started) {
-			stop();
-			start(false);
-		}
-
+		worker.postMessage({ action: 'tempoChange', msPerBeat: msPerBeat });
 		saveData();
 	}
 
 	function toggleStartStop() {
-		if (started) {
-			stop();
-		} else {
-			start();
-		}
-	}
-
-	function stop() {
-		window.clearInterval(intervalId);
-		started = false;
-	}
-
-	function start(initialClick = true) {
-		if (initialClick) {
-			click.currentTime = 0;
-			click.play();
-		}		
-
-		intervalId = window.setInterval(() => {
-			click.currentTime = 0;
-			click.play();
-		}, msPerBeat);
-
-		started = true;
+		worker.postMessage({ action: 'toggleStartStop', msPerBeat: msPerBeat });
+		isRunning = !isRunning;
 	}
 
 	document.addEventListener('keyup', (e) => {
@@ -80,7 +56,7 @@
 		<input type="number" bind:value={data.tempo} on:change={() => tempoChanged()} min="30" max="300" />
 
 		<div class="button-wrap">
-			<button on:click={toggleStartStop} class:started>{started ? 'Stop' : 'Start'}</button>
+			<button on:click={toggleStartStop} class:running="{isRunning}">{isRunning ? 'Stop' : 'Start'}</button>
 		</div>
 	</div>
 </main>
@@ -123,7 +99,7 @@
 			padding: 10px;
 			font-size: 32px;
 
-			&.started {
+			&.running {
 				background: red;
 			}
 		}
