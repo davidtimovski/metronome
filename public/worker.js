@@ -7,19 +7,27 @@ function tick() {
   postMessage(true);
 }
 
-onmessage = (e) => {
-  msPerBeat = e.data.msPerBeat;
+function start() {
+  tick();
+  intervalId = setInterval(tick, msPerBeat);
+  isRunning = true;
+}
 
+function stop() {
+  clearInterval(intervalId);
+  isRunning = false;
+}
+
+onmessage = (e) => {
   if (e.data.action === "toggleStartStop") {
     if (isRunning) {
-      clearInterval(intervalId);
-      isRunning = false;
+      stop();
     } else {
-      tick();
-      intervalId = setInterval(tick, msPerBeat);
-      isRunning = true;
+      msPerBeat = e.data.msPerBeat;
+      start();
     }
   } else if (e.data.action === "tempoChange" && isRunning) {
+    msPerBeat = e.data.msPerBeat;
     clearInterval(intervalId);
     intervalId = setInterval(tick, msPerBeat);
   }
