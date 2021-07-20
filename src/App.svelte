@@ -166,12 +166,12 @@
 		</div>
 		
 		{#if editingNewTempo}
-			<div class="new-tempo-form">
+			<form class="new-tempo-form" on:submit|preventDefault={saveNewTempo}>
 				<input type="text" bind:value={newTempoName} bind:this={newTempoNameInput} class="new-tempo-name" placeholder="New tempo name" />
 				<input type="number" bind:value={newTempoBpm} class="new-tempo-bpm" min="30" max="300" placeholder="BPM" />
-				<button on:click={saveNewTempo}>Save</button>
+				<button>Save</button>
 				<button on:click={cancelAddingNewTempo}>Cancel</button>
-			</div>
+			</form>
 		{:else}
 			<div class="tempos-actions">
 				<button on:click={addNewTempo} title="Add" aria-label="Add">+</button>
