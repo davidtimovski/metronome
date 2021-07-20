@@ -1,25 +1,7 @@
 <script lang="ts">
 	import Data from "./models/data";
 
-	const click = new Audio('/audio/click.mp3?v=5');
-	click.load();
-	
-	const worker = new Worker('worker.js');
-	worker.onmessage = () => {
-		click.currentTime = 0;
-	    click.play();
-	}
-
 	let data = new Data(null, []);
-	let isRunning = false;
-	let msPerBeat = 500;
-
-	let temposContainer: HTMLDivElement;
-
-	let editingNewTempo = false;
-	let newTempoNameInput: HTMLInputElement;
-	let newTempoName = '';
-	let newTempoBpm: number = null;
 
 	const dataItem = window.localStorage.getItem('data');
 	if (dataItem) {
@@ -27,7 +9,6 @@
 		
 		data.tempos = dataObj.tempos;
 		data.current = dataObj.current;
-		msPerBeat = getMsPerBeat();
 	} else {
 		const defaultTempo = {
 			name: 'Default',
@@ -41,23 +22,73 @@
 		saveData();
 	}
 
+	const audioContext = new AudioContext();
+	audioContext.suspend();
+	const source = audioContext.createBufferSource();
+
+	fetch('/audio/click.mp3?v=5')
+		.then(response => response.arrayBuffer())
+		.then(buffer => audioContext.decodeAudioData(buffer))
+		.then(buffer => {
+			source.buffer = buffer;
+			source.loop = true;
+			source.loopEnd = 1 / (data.current.bpm / 60);
+
+			source.connect(audioContext.destination);
+			source.start(0);
+		});
+
+	let isRunning = false;
+
+	let editingNewTempo = false;
+	let newTempoNameInput: HTMLInputElement;
+	let newTempoName = '';
+	let newTempoBpm: number = null;
+	let temposContainer: HTMLDivElement;
+
 	function saveData() {
 		const stringified = JSON.stringify(data);
 		window.localStorage.setItem('data', stringified);
 	}
 
-	function getMsPerBeat() {
+	function normalizeBpm() {
 		if (data.current.bpm < 30) {
-			data.current.bpm = 30;
-		} else if (data.current.bpm > 300) {
-			data.current.bpm = 300;
+			return 30;
+		} 
+		
+		if (data.current.bpm > 300) {
+			return 300;
 		}
 
 		if (data.current.bpm % 1 !== 0) {
-			data.current.bpm = Math.floor(data.current.bpm);
+			return Math.floor(data.current.bpm);
 		}
 
-		return (60 / data.current.bpm) * 1000;
+		return data.current.bpm;
+	}
+
+	function toggleStartStop() {
+		if (isRunning) {
+			audioContext.suspend();
+		} else {
+			audioContext.resume();
+		}
+
+		isRunning = !isRunning;
+	}
+
+	function selectTempo(tempoName: string) {
+		data.current = data.tempos.find(x => x.name === tempoName);
+
+		currentTempoChanged();
+	}
+
+	function currentTempoChanged() {
+		data.current.bpm = normalizeBpm();
+
+		source.loopEnd = 1 / (data.current.bpm / 60);
+
+		saveData();
 	}
 
 	function addNewTempo() {
@@ -124,24 +155,6 @@
 		editingNewTempo = false;
 		newTempoName = '';
 		newTempoBpm = null;
-	}
-
-	function selectTempo(tempoName: string) {
-		data.current = data.tempos.find(x => x.name === tempoName);
-		msPerBeat = getMsPerBeat();
-		
-		worker.postMessage({ action: 'tempoChange', msPerBeat: msPerBeat });
-	}
-
-	function currentTempoChanged() {
-		msPerBeat = getMsPerBeat();
-		worker.postMessage({ action: 'tempoChange', msPerBeat: msPerBeat });
-		saveData();
-	}
-
-	function toggleStartStop() {
-		worker.postMessage({ action: 'toggleStartStop', msPerBeat: msPerBeat });
-		isRunning = !isRunning;
 	}
 
 	document.addEventListener('keyup', (e) => {
