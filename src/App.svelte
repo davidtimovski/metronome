@@ -53,20 +53,20 @@
 		window.localStorage.setItem('data', stringified);
 	}
 
-	function normalizeBpm() {
-		if (selectedTempoBpm < 30) {
+	function normalizeBpm(bpm: number) {
+		if (bpm < 30) {
 			return 30;
 		} 
 		
-		if (selectedTempoBpm > 300) {
+		if (bpm > 300) {
 			return 300;
 		}
 
-		if (selectedTempoBpm % 1 !== 0) {
-			return Math.floor(selectedTempoBpm);
+		if (bpm % 1 !== 0) {
+			return Math.floor(bpm);
 		}
 
-		return selectedTempoBpm;
+		return bpm;
 	}
 
 	function toggleStartStop() {
@@ -87,21 +87,31 @@
 	}
 
 	function incrementTempo(bpm: number) {
-		selectedTempoBpm += bpm;
+		selectedTempoBpm = normalizeBpm(selectedTempoBpm + bpm);
 		source.loopEnd = 1 / (selectedTempoBpm / 60);
 	}
 
 	function decrementTempo(bpm: number) {
-		selectedTempoBpm -= bpm;
+		selectedTempoBpm = normalizeBpm(selectedTempoBpm - bpm);
 		source.loopEnd = 1 / (selectedTempoBpm / 60);
 	}
 
 	function currentTempoChanged() {
-		data.current.bpm = normalizeBpm();
+		selectedTempoBpm = normalizeBpm(selectedTempoBpm);
 
-		source.loopEnd = 1 / (data.current.bpm / 60);
+		source.loopEnd = 1 / (selectedTempoBpm / 60);
 
 		saveData();
+	}
+
+	function saveCurrentTempo() {
+		data.current.bpm = selectedTempoBpm;
+		saveData();
+	}
+
+	function undoCurrentTempoChange() {
+		selectedTempoBpm = data.current.bpm;
+		source.loopEnd = 1 / (data.current.bpm / 60);
 	}
 
 	function moveCurrentTempoDown() {
@@ -203,6 +213,12 @@
 
 <main>
 	<div class="container">
+		<div class="changed-tempo-alert" class:visible="{selectedTempoBpm !== data.current.bpm}">
+			<div class="changed-tempo-alert-text">{selectedTempoBpm > data.current.bpm ? 'Increased' : 'Decreased'} by {Math.abs(selectedTempoBpm - data.current.bpm)} bpm.</div>
+			<button type="button" on:click={saveCurrentTempo}>Save</button>
+			<button type="button" on:click={undoCurrentTempoChange}>Undo</button>
+		</div>
+
 		<div class="tempo-wrap">
 			<div class="tempo-actions tempo-actions-left">
 				<button type="button" on:click={() => decrementTempo(1)} class="tempo-action-button tempo-action-top fas fa-minus"></button>
@@ -277,6 +293,38 @@
 	.container {
 		padding: 0 20px;
 		text-align: center;
+	}
+
+	.changed-tempo-alert {
+		visibility: hidden;
+		display: flex;
+		border: 1px solid #ccd;
+		padding: 5px;
+		margin-bottom: 30px;
+		opacity: 0;
+		transition: opacity 300ms;
+
+		&.visible {
+			visibility: visible;
+			opacity: 1;
+		}
+
+		&-text {
+			flex: 1;
+			background: #eef;
+			padding: 8px 12px;
+			text-align: left;
+		}
+
+		button {
+			background: #88a;
+			border: none;
+			outline: none;
+			padding: 8px 10px;
+			margin-left: 5px;
+			color: white;
+			cursor: pointer;
+		}
 	}
 
 	.tempo-wrap {
@@ -408,13 +456,17 @@
 	}
 
 	.new-tempo-form {
-		margin-top: 20px;
+		border: 1px solid #ccd;
+		padding: 5px;
+		margin-top: 30px;
 
-		.new-tempo-form-title {
+		&-title {
+			background: #eef;
 			padding: 8px;
+			margin-bottom: 8px;
 		}
 
-		.new-tempo-form-inputs {
+		&-inputs {
 			display: flex;
 
 			.new-tempo-name-input {
@@ -430,7 +482,7 @@
 			}
 		}
 
-		.new-tempo-form-actions {
+		&-actions {
 			display: flex;
 			margin-top: 8px;
 
