@@ -4,3 +4,7 @@ html {
   height: 100%;
   color: #333;
 }
+
+input {
+  border: 1px solid #aaa;
+}
