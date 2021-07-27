@@ -8,7 +8,7 @@ export default class Storage {
     if (dataItem) {
       const dataObj = JSON.parse(dataItem);
 
-      this.data = new Data(dataObj.current, dataObj.tempos);
+      this.data = new Data(dataObj.currentName, dataObj.tempos);
     } else {
       const defaultTempo = {
         name: "Default",
@@ -16,7 +16,7 @@ export default class Storage {
         order: 1,
       };
 
-      this.data = new Data(defaultTempo, [defaultTempo]);
+      this.data = new Data(defaultTempo.name, [defaultTempo]);
 
       this.save();
     }

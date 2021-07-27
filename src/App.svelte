@@ -1,11 +1,14 @@
 <script lang="ts">
 	import Storage from "./lib/storage";
 	import Metronome from "./lib/metronome";
+	import Footer from './Footer.svelte';
 
 	const storage = new Storage();
-	const metronome = new Metronome('/audio/click.mp3?v=5', storage.data.current.bpm);
+	let currentTempo = storage.data.tempos.find((x) => x.name === storage.data.currentName);
+	let selectedTempoBpm = currentTempo.bpm;
 
-	let selectedTempoBpm = storage.data.current.bpm;
+	const metronome = new Metronome('/audio/click.mp3', selectedTempoBpm);
+
 	let isRunning = false;
 
 	let editingNewTempo = false;
@@ -25,10 +28,11 @@
 	}
 
 	function selectTempo(tempoName: string) {
-		storage.data.current = storage.data.tempos.find(x => x.name === tempoName);
-		selectedTempoBpm = storage.data.current.bpm;
+		storage.data.currentName = tempoName;
+		currentTempo = storage.data.tempos.find((x) => x.name === tempoName);
+		selectedTempoBpm = currentTempo.bpm;
 
-		currentTempoChanged();
+		currentChanged();
 	}
 
 	function incrementTempo(bpm: number) {
@@ -41,7 +45,7 @@
 		metronome.setTempo(selectedTempoBpm);
 	}
 
-	function currentTempoChanged() {
+	function currentChanged() {
 		selectedTempoBpm = metronome.normalizeBpm(selectedTempoBpm);
 
 		metronome.setTempo(selectedTempoBpm);
@@ -49,42 +53,42 @@
 		storage.save();
 	}
 
-	function saveCurrentTempo() {
-		storage.data.current.bpm = selectedTempoBpm;
+	function saveCurrent() {
+		currentTempo.bpm = selectedTempoBpm;
 		storage.save();
 	}
 
-	function undoCurrentTempoChange() {
-		selectedTempoBpm = storage.data.current.bpm;
-		metronome.setTempo(storage.data.current.bpm);
+	function undoCurrentChange() {
+		selectedTempoBpm = currentTempo.bpm;
+		metronome.setTempo(currentTempo.bpm);
 	}
 
-	function moveCurrentTempoDown() {
-		const currentTempoIndex = storage.data.tempos.findIndex(x => x.name === storage.data.current.name);
-		if (currentTempoIndex === storage.data.tempos.length - 1) {
+	function moveCurrentDown() {
+		const currentIndex = storage.data.tempos.findIndex(x => x.name === currentTempo.name);
+		if (currentIndex === storage.data.tempos.length - 1) {
 			return;
 		}
 
-		const nextTempoIndex = currentTempoIndex + 1;
+		const nextTempoIndex = currentIndex + 1;
 		const nextTempo = storage.data.tempos[nextTempoIndex];
 
-		storage.data.tempos[nextTempoIndex] = storage.data.current;
-		storage.data.tempos[currentTempoIndex] = nextTempo;
+		storage.data.tempos[nextTempoIndex] = currentTempo;
+		storage.data.tempos[currentIndex] = nextTempo;
 
 		storage.save();
 	}
 
-	function moveCurrentTempoUp() {
-		const currentTempoIndex = storage.data.tempos.findIndex(x => x.name === storage.data.current.name);
-		if (currentTempoIndex === 0) {
+	function moveCurrentUp() {
+		const currentIndex = storage.data.tempos.findIndex(x => x.name === currentTempo.name);
+		if (currentIndex === 0) {
 			return;
 		}
 
-		const previousTempoIndex = currentTempoIndex - 1;
+		const previousTempoIndex = currentIndex - 1;
 		const previousTempo = storage.data.tempos[previousTempoIndex];
 
-		storage.data.tempos[previousTempoIndex] = storage.data.current;
-		storage.data.tempos[currentTempoIndex] = previousTempo;
+		storage.data.tempos[previousTempoIndex] = currentTempo;
+		storage.data.tempos[currentIndex] = previousTempo;
 
 		storage.save();
 	}
@@ -96,15 +100,15 @@
 		}, 0);
 	}
 
-	function removeCurrentTempo() {
-		const currentTempoName = storage.data.current.name;
-		const currentTempoIndex = storage.data.tempos.findIndex(x => x.name === storage.data.current.name);
-		const nextTempoIndex = currentTempoIndex === 0 ? 1 : currentTempoIndex - 1;
+	function removeCurrent() {
+		const currentName = currentTempo.name;
+		const currentIndex = storage.data.tempos.findIndex(x => x.name === currentName);
+		const nextTempoIndex = currentIndex === 0 ? 1 : currentIndex - 1;
 		const nextTempo = storage.data.tempos[nextTempoIndex];
 
 		selectTempo(nextTempo.name);
 
-		storage.data.tempos = storage.data.tempos.filter(x => x.name !== currentTempoName);
+		storage.data.tempos = storage.data.tempos.filter(x => x.name !== currentName);
 
 		storage.save();
 	}
@@ -114,7 +118,7 @@
 			return;
 		}
 
-		if (storage.data.tempos.some(x => x.name === newTempoName.trim())) {
+		if (storage.data.tempos.some(x => x.name.toUpperCase() === newTempoName.trim().toUpperCase())) {
 			return;
 		}
 
@@ -158,21 +162,21 @@
 
 <main>
 	<div class="container">
-		<div class="changed-tempo-alert" class:visible="{selectedTempoBpm !== storage.data.current.bpm}">
-			<div class="changed-tempo-alert-text">{selectedTempoBpm > storage.data.current.bpm ? 'Increased' : 'Decreased'} by {Math.abs(selectedTempoBpm - storage.data.current.bpm)} bpm.</div>
-			<button type="button" on:click={saveCurrentTempo}>Save</button>
-			<button type="button" on:click={undoCurrentTempoChange}>Undo</button>
+		<div class="changed-tempo-alert" class:visible="{selectedTempoBpm !== currentTempo.bpm}">
+			<div class="changed-tempo-alert-text">{selectedTempoBpm > currentTempo.bpm ? 'Increased' : 'Decreased'} by {Math.abs(selectedTempoBpm - currentTempo.bpm)} bpm.</div>
+			<button type="button" on:click={saveCurrent}>Save</button>
+			<button type="button" on:click={undoCurrentChange}>Undo</button>
 		</div>
 
 		<div class="tempo-wrap">
 			<div class="tempo-actions tempo-actions-left">
-				<button type="button" on:click={() => decrementTempo(1)} class="tempo-action-button tempo-action-top fas fa-minus"></button>
-				<button type="button" on:click={() => decrementTempo(5)} class="tempo-action-button tempo-action-text">- 5</button>
+				<button type="button" on:click={() => decrementTempo(1)} disabled={selectedTempoBpm === 30} class="tempo-action-button tempo-action-top fas fa-minus"></button>
+				<button type="button" on:click={() => decrementTempo(5)} disabled={selectedTempoBpm === 30} class="tempo-action-button tempo-action-text">- 5</button>
 			</div>
-			<input type="number" bind:value={selectedTempoBpm} on:change={() => currentTempoChanged()} class="bpm-input" class:changed-up="{selectedTempoBpm > storage.data.current.bpm}" class:changed-down="{selectedTempoBpm < storage.data.current.bpm}" min="30" max="300" />
+			<input type="number" bind:value={selectedTempoBpm} on:change={() => currentChanged()} class="bpm-input" class:changed-up="{selectedTempoBpm > currentTempo.bpm}" class:changed-down="{selectedTempoBpm < currentTempo.bpm}" min="30" max="300" />
 			<div class="tempo-actions tempo-actions-right">
-				<button type="button" on:click={() => incrementTempo(1)} class="tempo-action-button tempo-action-top fas fa-plus"></button>
-				<button type="button" on:click={() => incrementTempo(5)} class="tempo-action-button tempo-action-text">+ 5</button>
+				<button type="button" on:click={() => incrementTempo(1)} disabled={selectedTempoBpm === 300} class="tempo-action-button tempo-action-top fas fa-plus"></button>
+				<button type="button" on:click={() => incrementTempo(5)} disabled={selectedTempoBpm === 300} class="tempo-action-button tempo-action-text">+ 5</button>
 			</div>
 		</div>
 
@@ -182,10 +186,10 @@
 
 		<div class="tempos" bind:this={temposContainer} class:multiple="{storage.data.tempos.length > 1}">
 			{#each storage.data.tempos as tempo}
-				<div class="tempo" class:selected="{tempo.name === storage.data.current.name}">
-					<button type="button" on:click={moveCurrentTempoDown} class="down-button fas fa-long-arrow-alt-down" title="Move down" aria-label="Move down"></button>
+				<div class="tempo" class:selected="{tempo.name === currentTempo.name}">
+					<button type="button" on:click={moveCurrentDown} class="down-button fas fa-long-arrow-alt-down" title="Move down" aria-label="Move down"></button>
 					<div on:click={() => selectTempo(tempo.name)} class="current-tempo-name">{tempo.name}</div>
-					<button type="button" on:click={moveCurrentTempoUp} class="up-button fas fa-long-arrow-alt-up" title="Move up" aria-label="Move up"></button>
+					<button type="button" on:click={moveCurrentUp} class="up-button fas fa-long-arrow-alt-up" title="Move up" aria-label="Move up"></button>
 				</div>
 			{/each}
 		</div>
@@ -206,7 +210,7 @@
 		{:else}
 			<div class="tempos-actions">
 				{#if storage.data.tempos.length > 1}
-					<button on:click={removeCurrentTempo} class="fas fa-minus" title="Remove tempo" aria-label="Remove tempo"></button>
+					<button on:click={removeCurrent} class="fas fa-minus" title="Remove tempo" aria-label="Remove tempo"></button>
 				{/if}
 
 				<button on:click={addNewTempo} class="fas fa-plus" title="Add tempo" aria-label="Add tempo"></button>
@@ -214,6 +218,8 @@
 		{/if}
 	</div>
 </main>
+
+<Footer />
 
 <style lang="scss">
 	/* Chrome, Safari, Edge, Opera */
@@ -232,7 +238,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		height: 100%;
+		height: 90%;
 	}
 
 	.container {
