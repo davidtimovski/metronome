@@ -15,7 +15,7 @@
 	let newTempoNameInput: HTMLInputElement;
 	let newTempoName = '';
 	let newTempoBpm: number = null;
-	let temposContainer: HTMLDivElement;
+	let newTempoForm: HTMLFormElement;
 
 	function toggleStartStop() {
 		if (isRunning) {
@@ -95,7 +95,10 @@
 
 	function addNewTempo() {
 		editingNewTempo = true;
+
 		window.setTimeout(() => {
+			newTempoForm.scrollTop = newTempoForm.scrollHeight;
+
 			newTempoNameInput.focus();
 		}, 0);
 	}
@@ -139,14 +142,13 @@
 			bpm: newTempoBpm,
 			order: storage.data.tempos.length + 1
 		};
-		storage.data.tempos = [...storage.data.tempos, newTempo];
+
+		const currentIndex = storage.data.tempos.findIndex(x => x.name === currentTempo.name);
+		const beforeNewTempo = storage.data.tempos.slice(0, currentIndex + 1);
+		const afterNewTempo = storage.data.tempos.slice(currentIndex + 1);
+		storage.data.tempos = [...beforeNewTempo, newTempo, ...afterNewTempo];
 		
 		selectTempo(newTempo.name);
-
-		// Scroll to bottom
-		window.setTimeout(() => {
-			temposContainer.scrollTop = temposContainer.scrollHeight;
-		}, 0);		
 
 		storage.save();
 
@@ -163,7 +165,7 @@
 <main>
 	<div class="container">
 		<div class="changed-tempo-alert" class:visible="{selectedTempoBpm !== currentTempo.bpm}">
-			<div class="changed-tempo-alert-text">{selectedTempoBpm > currentTempo.bpm ? 'Increased' : 'Decreased'} by {Math.abs(selectedTempoBpm - currentTempo.bpm)} bpm.</div>
+			<div class="changed-tempo-alert-text">{selectedTempoBpm > currentTempo.bpm ? '+' : '-'}{Math.abs(selectedTempoBpm - currentTempo.bpm)} bpm</div>
 			<button type="button" on:click={saveCurrent}>Save</button>
 			<button type="button" on:click={undoCurrentChange}>Undo</button>
 		</div>
@@ -184,7 +186,7 @@
 			<button on:click={toggleStartStop} class:running="{isRunning}">{isRunning ? 'Stop' : 'Start'}</button>
 		</div>
 
-		<div class="tempos" bind:this={temposContainer} class:multiple="{storage.data.tempos.length > 1}">
+		<div class="tempos" class:multiple="{storage.data.tempos.length > 1}">
 			{#each storage.data.tempos as tempo}
 				<div class="tempo" class:selected="{tempo.name === currentTempo.name}">
 					<button type="button" on:click={moveCurrentDown} class="down-button fas fa-long-arrow-alt-down" title="Move down" aria-label="Move down"></button>
@@ -193,29 +195,27 @@
 				</div>
 			{/each}
 		</div>
-		
-		{#if editingNewTempo}
-			<form class="new-tempo-form" on:submit|preventDefault={saveNewTempo}>
-				<div class="new-tempo-form-title">Add a new tempo</div>
 
-				<div class="new-tempo-form-inputs">
-					<input type="text" bind:value={newTempoName} bind:this={newTempoNameInput} class="new-tempo-name-input" maxlength="30" placeholder="Name" />
-					<input type="number" bind:value={newTempoBpm} class="new-tempo-bpm-input" min="30" max="300" placeholder="BPM" />
-				</div>
-				<div class="new-tempo-form-actions">
-					<button>Save</button>
-					<button on:click={cancelAddingNewTempo}>Cancel</button>
-				</div>
-			</form>
-		{:else}
-			<div class="tempos-actions">
-				{#if storage.data.tempos.length > 1}
-					<button on:click={removeCurrent} class="fas fa-minus" title="Remove tempo" aria-label="Remove tempo"></button>
-				{/if}
+		<div class="tempos-actions">
+			{#if storage.data.tempos.length > 1}
+				<button on:click={removeCurrent} disabled={editingNewTempo} class="fas fa-minus" title="Remove tempo" aria-label="Remove tempo"></button>
+			{/if}
 
-				<button on:click={addNewTempo} class="fas fa-plus" title="Add tempo" aria-label="Add tempo"></button>
+			<button on:click={addNewTempo} disabled={editingNewTempo} class="fas fa-plus" title="Add tempo" aria-label="Add tempo"></button>
+		</div>
+
+		<form class="new-tempo-form" bind:this={newTempoForm} on:submit|preventDefault={saveNewTempo} class:visible="{editingNewTempo}">
+			<div class="new-tempo-form-title">Add a new tempo</div>
+
+			<div class="new-tempo-form-inputs">
+				<input type="text" bind:value={newTempoName} bind:this={newTempoNameInput} class="new-tempo-name-input" maxlength="30" placeholder="Name" />
+				<input type="number" bind:value={newTempoBpm} class="new-tempo-bpm-input" min="30" max="300" placeholder="BPM" />
 			</div>
-		{/if}
+			<div class="new-tempo-form-actions">
+				<button>Save</button>
+				<button on:click={cancelAddingNewTempo}>Cancel</button>
+			</div>
+		</form>
 	</div>
 </main>
 
@@ -236,22 +236,20 @@
 
 	main {
 		display: flex;
-		align-items: center;
 		justify-content: center;
-		height: 90%;
+		min-height: 90%;
 	}
 
 	.container {
-		padding: 0 20px;
-		text-align: center;
+		padding: 40px 20px;
 	}
 
 	.changed-tempo-alert {
 		visibility: hidden;
 		display: flex;
-		border: 1px solid #ccd;
+		border: 1px solid var(--gray-color);
 		padding: 5px;
-		margin-bottom: 30px;
+		margin: 0 60px 20px;
 		opacity: 0;
 		transition: opacity 300ms;
 
@@ -262,19 +260,14 @@
 
 		&-text {
 			flex: 1;
-			background: #eef;
-			padding: 8px 12px;
-			text-align: left;
+			background: var(--light-blue-color);
+			padding: 8px;
+			text-align: center;
 		}
 
 		button {
-			background: #88a;
-			border: none;
-			outline: none;
 			padding: 8px 10px;
 			margin-left: 5px;
-			color: white;
-			cursor: pointer;
 		}
 	}
 
@@ -295,10 +288,6 @@
 
 			.tempo-action-button {
 				flex: 1;
-				border: none;
-				outline: none;
-				font-size: 18px;
-				cursor: pointer;
 
 				&.tempo-action-text {
 					font-size: 20px;
@@ -312,48 +301,41 @@
 		.bpm-input {
 			width: 100%;
 			padding: 5px 10px;
-			font-size: 70px;
+			font-size: 72px;
 			text-align: center;
 			color: inherit;
 			transition: background 300ms;
 
 			&.changed-up {
-				background: #efffef;
+				background: #ddffe6;
 			}
 			&.changed-down {
-				background: #ffefef;
+				background: #ffeaea;
 			}
 		}
 	}
 
 	.start-stop-button-wrap {
-		margin-top: 15px;
+		margin-top: 25px;
 		text-align: center;
 
 		button {
-			width: 140px;
-			background: green;
-			border: none;
-			outline: none;
-			padding: 10px;
-			font-size: 32px;
-			color: white;
-			cursor: pointer;
+			width: 200px;
+			background: #4dbb76;
+			padding: 15px;
+			font-size: 38px;
 
 			&.running {
-				background: red;
+				background: #dd4d4d;
 			}
 		}
 	}
 
 	.tempos {
-		max-height: 200px;
-		margin-top: 30px;
-		overflow-y: scroll;
-
-		/* Hide scrollbar for IE, Edge and Firefox */
-		-ms-overflow-style: none;  /* IE and Edge */
-		scrollbar-width: none;  /* Firefox */
+		max-height: 250px;
+		padding: 0 20px;
+		margin: 30px auto 0;
+		overflow-y: auto;
 
 		.tempo {
 			display: flex;
@@ -366,10 +348,6 @@
 			button {
 				display: none;
 				width: 34px;
-				background: #dedede;
-				border: none;
-				outline: none;
-				cursor: pointer;
 
 				&.down-button {
 					margin-right: 8px;
@@ -381,18 +359,17 @@
 
 			.current-tempo-name {
 				flex: 1;
-				background: #eee;
+				background: var(--light-blue-color);
 				padding: 8px 15px;
 			}
-
 			
 			&.selected .current-tempo-name {
-				background: blue;
-				color: white;
+				background: var(--gray-color);
+				color: #fff;
 			}
 
 			&:hover:not(.selected) .current-tempo-name {
-				background: #ddd;
+				background: #cfdfef;
 			}
 		}
 
@@ -408,12 +385,17 @@
 	}
 
 	.new-tempo-form {
-		border: 1px solid #ccd;
+		display: none;
+		border: 1px solid var(--gray-color);
 		padding: 5px;
-		margin-top: 30px;
+		margin-top: 20px;
+
+		&.visible {
+			display: block;
+		}
 
 		&-title {
-			background: #eef;
+			background: var(--light-blue-color);
 			padding: 8px;
 			margin-bottom: 8px;
 		}
@@ -423,12 +405,12 @@
 
 			.new-tempo-name-input {
 				flex: 1;
-				padding: 3px 5px;
+				padding: 5px 6px;
 			}
 
 			.new-tempo-bpm-input {
 				width: 70px;
-				padding: 3px 5px;
+				padding: 5px 6px;
 				margin-left: 8px;
 				text-align: center;
 			}
@@ -440,10 +422,7 @@
 
 			button {
 				flex: 1;
-				border: none;
-				outline: none;
 				padding: 8px 0;
-				cursor: pointer;
 
 				&:first-child {
 					margin-right: 8px;
@@ -458,20 +437,17 @@
 
 		button {
 			width: 40px;
-			border: none;
-			outline: none;
 			padding: 10px 0;
-			cursor: pointer;
 		}
 	}
 
-	@media screen and (min-width: 768px) {
+	@media screen and (min-width: 600px) {
 		.container {
-			padding: 0;
+			max-width: 450px;
 		}
 
-		.tempo-wrap .bpm-input {
-			width: 250px;
+		.tempos {
+			max-height: 350px;
 		}
 	}
 </style>

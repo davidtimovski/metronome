@@ -2,8 +2,7 @@ export default class Metronome {
   private readonly minBpm = 30;
   private readonly maxBpm = 300;
   private source: AudioBufferSourceNode;
-
-  public audioContext: AudioContext;
+  private audioContext: AudioContext;
 
   constructor(public soundFileUrl: string, bpm: number) {
     this.audioContext = new AudioContext();
