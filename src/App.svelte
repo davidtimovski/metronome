@@ -190,7 +190,9 @@
 			{#each storage.data.tempos as tempo}
 				<div class="tempo" class:selected="{tempo.name === currentTempo.name}">
 					<button type="button" on:click={moveCurrentDown} class="down-button fas fa-long-arrow-alt-down" title="Move down" aria-label="Move down"></button>
-					<div on:click={() => selectTempo(tempo.name)} class="current-tempo-name">{tempo.name}</div>
+					<div class="tempo-name">
+						<button type="button" on:click={() => selectTempo(tempo.name)}>{tempo.name}</button>
+					</div>
 					<button type="button" on:click={moveCurrentUp} class="up-button fas fa-long-arrow-alt-up" title="Move up" aria-label="Move up"></button>
 				</div>
 			{/each}
@@ -247,9 +249,9 @@
 	.changed-tempo-alert {
 		visibility: hidden;
 		display: flex;
-		border: 1px solid var(--gray-color);
+		border: 2px solid var(--gray-color);
 		padding: 5px;
-		margin: 0 60px 20px;
+		margin-bottom: 20px;
 		opacity: 0;
 		transition: opacity 300ms;
 
@@ -338,38 +340,49 @@
 		overflow-y: auto;
 
 		.tempo {
-			display: flex;
-			justify-content: space-between;
 			margin-top: 8px;
 			text-align: center;
 			cursor: pointer;
 			user-select: none;
 
-			button {
+			.down-button, .up-button {
 				display: none;
 				width: 34px;
-
-				&.down-button {
-					margin-right: 8px;
-				}
-				&.up-button {
-					margin-left: 8px;
-				}
 			}
 
-			.current-tempo-name {
-				flex: 1;
+			.down-button {
+				margin-right: 8px;
+			}
+			.up-button {
+				margin-left: 8px;
+			}
+
+			.tempo-name button {
+				width: 100%;
 				background: var(--light-blue-color);
-				padding: 8px 15px;
+				padding: 10px;
+				color: var(--gray-color);
 			}
 			
-			&.selected .current-tempo-name {
-				background: var(--gray-color);
-				color: #fff;
+			&.selected {
+				display: flex;
+				justify-content: space-between;
+
+				.tempo-name {
+					flex: 1;
+					border: 2px solid var(--gray-color);
+					padding: 3px;
+					
+					button {
+						background: var(--gray-color);
+						padding: 5px 10px;
+						color: #fff;
+					}
+				}
 			}
 
-			&:hover:not(.selected) .current-tempo-name {
-				background: #cfdfef;
+			&:hover:not(.selected) .tempo-name button {
+				background: #d2e2f2;
 			}
 		}
 
@@ -386,7 +399,7 @@
 
 	.new-tempo-form {
 		display: none;
-		border: 1px solid var(--gray-color);
+		border: 2px solid var(--gray-color);
 		padding: 5px;
 		margin-top: 20px;
 
@@ -398,6 +411,7 @@
 			background: var(--light-blue-color);
 			padding: 8px;
 			margin-bottom: 8px;
+			text-align: center;
 		}
 
 		&-inputs {
@@ -405,12 +419,12 @@
 
 			.new-tempo-name-input {
 				flex: 1;
-				padding: 5px 6px;
+				padding: 5px 8px;
 			}
 
 			.new-tempo-bpm-input {
 				width: 70px;
-				padding: 5px 6px;
+				padding: 5px;
 				margin-left: 8px;
 				text-align: center;
 			}
