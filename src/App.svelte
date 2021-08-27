@@ -1,27 +1,42 @@
 <script lang="ts">
 	import Storage from "./lib/storage";
 	import Metronome from "./lib/metronome";
-	import Footer from './Footer.svelte';
-
+	import WakeLockService from "./lib/wakeLockService";
+	import Footer from "./Footer.svelte";
+	
 	const storage = new Storage();
 	let currentTempo = storage.data.tempos.find((x) => x.name === storage.data.currentName);
 	let selectedTempoBpm = currentTempo.bpm;
 
-	const metronome = new Metronome('/audio/click.mp3', selectedTempoBpm);
+	const metronome = new Metronome("/audio/click.mp3", selectedTempoBpm);
 
 	let isRunning = false;
 
 	let editingNewTempo = false;
 	let newTempoNameInput: HTMLInputElement;
-	let newTempoName = '';
+	let newTempoName = "";
 	let newTempoBpm: number = null;
 	let newTempoForm: HTMLFormElement;
 
-	function toggleStartStop() {
+	const wakeLockService = new WakeLockService();
+
+	// Re-lock screen if document was out of focus
+	// and then came into focus while metronome is running
+	document.addEventListener("visibilitychange", async () => {
+		if (wakeLockService.lock !== null && document.visibilityState === "visible" && isRunning) {
+			await wakeLockService.requestWakeLock();
+		}
+	});
+
+	async function toggleStartStop() {
 		if (isRunning) {
 			metronome.stop();
+
+			wakeLockService.releaseWakeLock();
 		} else {
 			metronome.start();
+
+			await wakeLockService.requestWakeLock();
 		}
 
 		isRunning = !isRunning;
@@ -117,7 +132,7 @@
 	}
 
 	function saveNewTempo() {
-		if (newTempoName.trim() === '') {
+		if (newTempoName.trim() === "") {
 			return;
 		}
 
@@ -157,7 +172,7 @@
 
 	function cancelAddingNewTempo() {
 		editingNewTempo = false;
-		newTempoName = '';
+		newTempoName = "";
 		newTempoBpm = null;
 	}
 </script>
@@ -165,7 +180,7 @@
 <main>
 	<div class="container">
 		<div class="changed-tempo-alert" class:visible="{selectedTempoBpm !== currentTempo.bpm}">
-			<div class="changed-tempo-alert-text">{selectedTempoBpm > currentTempo.bpm ? '+' : '-'}{Math.abs(selectedTempoBpm - currentTempo.bpm)} bpm</div>
+			<div class="changed-tempo-alert-text">{selectedTempoBpm > currentTempo.bpm ? "+" : "-"}{Math.abs(selectedTempoBpm - currentTempo.bpm)} bpm</div>
 			<button type="button" on:click={saveCurrent}>Save</button>
 			<button type="button" on:click={undoCurrentChange}>Undo</button>
 		</div>
@@ -183,7 +198,7 @@
 		</div>
 
 		<div class="start-stop-button-wrap">
-			<button on:click={toggleStartStop} class:running="{isRunning}">{isRunning ? 'Stop' : 'Start'}</button>
+			<button on:click={async () => { await toggleStartStop(); }} class:running="{isRunning}">{isRunning ? "Stop" : "Start"}</button>
 		</div>
 
 		<div class="tempos" class:multiple="{storage.data.tempos.length > 1}">
