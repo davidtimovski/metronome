@@ -1,29 +1,23 @@
 import Data from "../models/data";
+import Tempo from "../models/tempo";
 
 export default class Storage {
-  public data: Data;
-
   constructor() {
     const dataItem = window.localStorage.getItem("data");
-    if (dataItem) {
-      const dataObj = JSON.parse(dataItem);
-
-      this.data = new Data(dataObj.currentName, dataObj.tempos);
-    } else {
-      const defaultTempo = {
-        name: "Default",
-        bpm: 120,
-        order: 1,
-      };
-
-      this.data = new Data(defaultTempo.name, [defaultTempo]);
-
-      this.save();
+    if (!dataItem) {
+      const defaultTempo = new Tempo("Default", 120, 1);
+      const data = new Data(defaultTempo.name, [defaultTempo]);
+      this.save(data);
     }
   }
 
-  public save() {
-    const stringified = JSON.stringify(this.data);
+  get(): Data {
+    const dataItem = window.localStorage.getItem("data");
+    return JSON.parse(dataItem);
+  }
+
+  save(data: Data) {
+    const stringified = JSON.stringify(data);
     window.localStorage.setItem("data", stringified);
   }
 }
