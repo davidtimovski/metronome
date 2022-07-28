@@ -198,12 +198,14 @@
           on:click={() => decrementTempo(1)}
           disabled={$bpm === 30}
           class="tempo-action-button tempo-action-top fas fa-minus"
+          aria-label="Decrease tempo by 1"
         />
         <button
           type="button"
           on:click={() => decrementTempo(5)}
           disabled={$bpm === 30}
-          class="tempo-action-button tempo-action-text">- 5</button
+          class="tempo-action-button tempo-action-text"
+          aria-label="Decrease tempo by 5">- 5</button
         >
       </div>
 
@@ -216,6 +218,7 @@
         class:changed-down={$bpm < currentTempo.bpm}
         min="30"
         max="300"
+        aria-label="Tempo (bpm)"
       />
 
       <div class="tempo-actions tempo-actions-right">
@@ -224,12 +227,14 @@
           on:click={() => incrementTempo(1)}
           disabled={$bpm === 300}
           class="tempo-action-button tempo-action-top fas fa-plus"
+          aria-label="Increase tempo by 1"
         />
         <button
           type="button"
           on:click={() => incrementTempo(5)}
           disabled={$bpm === 300}
-          class="tempo-action-button tempo-action-text">+ 5</button
+          class="tempo-action-button tempo-action-text"
+          aria-label="Increase tempo by 5">+ 5</button
         >
       </div>
     </div>
