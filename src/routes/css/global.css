@@ -1,0 +1,77 @@
+:root {
+	--gray-color: #4d6276;
+	--light-blue-color: #dfefff;
+	--green-color: #4dbb76;
+	--light-green-color: #ddffe6;
+	--green-text-color: #4d7662;
+}
+
+body,
+html {
+	font-family: 'Open Sans';
+	height: 100%;
+	font-size: 18px;
+	line-height: 24px;
+	color: var(--gray-color);
+}
+
+main {
+	display: grid;
+	grid-template-columns: 1fr 1fr 1fr;
+}
+
+input {
+	border: 1px solid var(--gray-color);
+}
+
+button {
+	background: var(--gray-color);
+	border: none;
+	outline: none;
+	color: #fff;
+	cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+	background: #3d5266;
+}
+
+button:disabled {
+	opacity: 0.7;
+}
+
+@media screen and (max-width: 1500px) {
+	main {
+		grid-template-columns: 30% 40% 30%;
+	}
+}
+
+@media screen and (max-width: 1200px) {
+	main {
+		grid-template-columns: 25% 50% 25%;
+	}
+}
+
+@media screen and (max-width: 1000px) {
+	main {
+		grid-template-columns: 20% 60% 20%;
+	}
+}
+
+@media screen and (max-width: 800px) {
+	main {
+		grid-template-columns: 12% 76% 12%;
+	}
+}
+
+@media screen and (max-width: 650px) {
+	main {
+		grid-template-columns: 7% 86% 7%;
+	}
+}
+
+@media screen and (max-width: 550px) {
+	main {
+		grid-template-columns: 0 100% 0;
+	}
+}
