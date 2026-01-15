@@ -7,7 +7,7 @@
 
 <style lang="scss">
 	footer {
-		margin-top: 3rem;
+		margin: 3rem 0 1rem;
 		text-align: center;
 
 		a {

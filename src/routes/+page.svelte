@@ -13,10 +13,9 @@
 	let storage: Storage | null = $state(null);
 	let data: Data | null = $state(null);
 	let currentTempoVm: TempoViewModel | null = $state(null);
+	let initialTempo: number | null = $state(null);
 	let metronome: Metronome | null = $state(null);
-
 	let isRunning = $state(false);
-
 	let editingNewTempo = $state(false);
 	let newTempoNameInput: HTMLInputElement | null = $state(null);
 	let newTempoName = $state('');
@@ -51,12 +50,13 @@
 		data.currentName = tempoName;
 		const current = data.tempos.find((x: Tempo) => x.name === tempoName)!;
 		currentTempoVm = new TempoViewModel(current.name, current.bpm, current.goalBpm, current.order);
+		initialTempo = currentTempoVm.bpm;
 
 		currentChanged();
 	}
 
 	function incrementTempo(value: number) {
-		if (metronome === null || currentTempoVm === null) {
+		if (data === null || metronome === null || currentTempoVm === null) {
 			throw new Error('Data not initialized');
 		}
 
@@ -85,18 +85,25 @@
 	}
 
 	function saveCurrent() {
-		if (storage === null || data === null) {
+		if (storage === null || data === null || currentTempoVm === null) {
 			throw new Error('Data not initialized');
 		}
+
+		initialTempo = currentTempoVm.bpm;
+
+		const tempo = data.tempos.find((x: Tempo) => x.name === currentTempoVm?.name)!;
+		tempo.bpm = currentTempoVm.bpm;
 
 		storage.save(data);
 		data = storage.get();
 	}
 
 	function undoCurrentChange() {
-		if (metronome === null || currentTempoVm === null) {
+		if (metronome === null || currentTempoVm === null || initialTempo === null) {
 			throw new Error('Data not initialized');
 		}
+
+		currentTempoVm.bpm = initialTempo;
 
 		metronome.setTempo(currentTempoVm.bpm);
 	}
@@ -113,8 +120,9 @@
 
 		const nextTempoIndex = currentIndex + 1;
 		const nextTempo = data.tempos[nextTempoIndex];
+		const currentTempo = data.tempos.find((x: Tempo) => x.name === currentTempoVm?.name)!;
 
-		data.tempos[nextTempoIndex] = currentTempoVm;
+		data.tempos[nextTempoIndex] = currentTempo;
 		data.tempos[currentIndex] = nextTempo;
 
 		storage.save(data);
@@ -132,8 +140,9 @@
 
 		const previousTempoIndex = currentIndex - 1;
 		const previousTempo = data.tempos[previousTempoIndex];
+		const currentTempo = data.tempos.find((x: Tempo) => x.name === currentTempoVm?.name)!;
 
-		data.tempos[previousTempoIndex] = currentTempoVm;
+		data.tempos[previousTempoIndex] = currentTempo;
 		data.tempos[currentIndex] = previousTempo;
 
 		storage.save(data);
@@ -220,6 +229,7 @@
 		data = storage.get()!;
 		const current = data.tempos.find((x) => x.name === data!.currentName)!;
 		currentTempoVm = new TempoViewModel(current.name, current.bpm, current.goalBpm, current.order);
+		initialTempo = current.bpm;
 		metronome = new Metronome('/audio/click.mp3', currentTempoVm.bpm);
 
 		// Re-lock screen if document was out of focus and then
@@ -233,10 +243,10 @@
 </script>
 
 <div class="container">
-	{#if data && currentTempoVm}
-		<div class="changed-tempo-alert" class:visible={currentTempoVm.bpm !== currentTempoVm.bpm}>
+	{#if data && currentTempoVm && initialTempo}
+		<div class="changed-tempo-alert" class:visible={currentTempoVm.bpm !== initialTempo}>
 			<div class="changed-tempo-alert-text">
-				{currentTempoVm.bpm > currentTempoVm.bpm ? '+' : '-'}{Math.abs(currentTempoVm.bpm - currentTempoVm.bpm)} bpm
+				{currentTempoVm.bpm > initialTempo ? '+' : '-'}{Math.abs(currentTempoVm.bpm - initialTempo)} bpm
 			</div>
 			<button type="button" onclick={saveCurrent}>Save</button>
 			<button type="button" onclick={undoCurrentChange}>Undo</button>
@@ -267,8 +277,8 @@
 				bind:value={currentTempoVm.bpm}
 				onchange={() => currentChanged()}
 				class="bpm-input"
-				class:changed-up={currentTempoVm.bpm > currentTempoVm.bpm}
-				class:changed-down={currentTempoVm.bpm < currentTempoVm.bpm}
+				class:changed-up={currentTempoVm.bpm > initialTempo}
+				class:changed-down={currentTempoVm.bpm < initialTempo}
 				min="30"
 				max="300"
 				aria-label="Tempo (bpm)"
@@ -297,7 +307,7 @@
 		</div>
 
 		<div class="tempos" class:multiple={data.tempos.length > 1}>
-			{#each data.tempos as tempo}
+			{#each data.tempos as tempo (tempo.name)}
 				<div class="tempo" class:selected={tempo.name === currentTempoVm.name}>
 					<button
 						type="button"
